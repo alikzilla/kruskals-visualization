@@ -42,20 +42,8 @@ function GraphVisualization() {
 
   function findMST() {
     const mstGraph = computeMSTUsingKruskal(graph);
-    setMST(null); // Reset MST
-    const mstEdges = [];
-    let i = 0;
-    const addEdge = () => {
-      if (i < mstGraph.edges.length) {
-        mstEdges.push(mstGraph.edges[i]);
-        setMST({ nodes: mstGraph.nodes, edges: mstEdges });
-        i++;
-        setTimeout(addEdge, 1000); // Append new edge every 1 second
-      }
-    };
-    addEdge();
+    setMST(mstGraph);
   }
-  
 
   function computeMSTUsingKruskal(graph) {
     const sortedEdges = graph.edges.slice().sort((a, b) => a.from - b.from || a.to - b.to);
