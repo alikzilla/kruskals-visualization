@@ -46,30 +46,16 @@ function GraphVisualization() {
     const mstEdges = [];
     let i = 0;
     const addEdge = () => {
-      return new Promise(resolve => {
-        if (i < mstGraph.edges.length) {
-          const updatedEdges = [...mstEdges, mstGraph.edges[i]];
-          setMST(prevState => ({
-            nodes: mstGraph.nodes,
-            edges: updatedEdges
-          }));
-          i++;
-          setTimeout(() => {
-            console.log("1 second");
-            resolve();
-          }, 1000); // Append new edge every 1 second
-        }
-      });
-    };
-
-    const addEdgesSequentially = async () => {
-      while (i < mstGraph.edges.length) {
-        await addEdge();
+      if (i < mstGraph.edges.length) {
+        mstEdges.push(mstGraph.edges[i]);
+        setMST({ nodes: mstGraph.nodes, edges: mstEdges });
+        i++;
+        setTimeout(addEdge, 1000); // Append new edge every 1 second
       }
     };
-
-    addEdgesSequentially();
-  } 
+    addEdge();
+  }
+  
 
   function computeMSTUsingKruskal(graph) {
     const sortedEdges = graph.edges.slice().sort((a, b) => a.from - b.from || a.to - b.to);
@@ -111,20 +97,14 @@ function GraphVisualization() {
           <h1>Initial Tree</h1>
           <div className={styles.graph}>
             <Graph
-              key={selectGroup}
               className={styles.graph}
+              graph={graph}
               options={options}
               events={{ 
                 select: function(event) {
                   console.log("Node selected:", event.nodes);
                 }
               }}
-              graph={
-                {
-                  nodes: graph.nodes.filter(n => n.network === parseInt(selectGroup)),
-                  edges: graph.edges.filter(n => n.network === parseInt(selectGroup)),
-                }
-              }
             />
           </div>
         </div>
