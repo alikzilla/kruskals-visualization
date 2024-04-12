@@ -120,7 +120,12 @@ function GraphVisualization() {
   
 
   function computeMSTUsingKruskal(graph) {
-    const sortedEdges = graph.edges.slice().sort((a, b) => a.from - b.from || a.to - b.to);
+    const sortedEdges = graph.edges.slice().sort((a, b) => {
+      return parseInt(a.label) - parseInt(b.label); // Sort edges by weight
+    });
+
+    console.log(sortedEdges)
+  
     const mstEdges = [];
     const disjointSets = new Map();
   
@@ -159,7 +164,7 @@ function GraphVisualization() {
     }
   
     return { nodes: graph.nodes, edges: mstEdges };
-  }
+  }  
 
   function resetGraph() {
     const newGraph = generateRandomGraph();
