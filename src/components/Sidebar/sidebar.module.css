@@ -1,0 +1,189 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.card h3 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.card h3 small {
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* stats */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat span {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat strong {
+  font: 700 20px var(--font-mono);
+}
+
+.accent {
+  color: var(--accepted);
+}
+
+.progress {
+  margin-top: 10px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.progress div {
+  height: 100%;
+  background: var(--accepted);
+  transition: width 0.4s;
+}
+
+.warn {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--current);
+}
+
+/* pseudocode */
+.code {
+  font: 12.5px/1.65 var(--font-mono);
+  overflow-x: auto;
+}
+
+.code div {
+  padding: 0 6px;
+  border-radius: 5px;
+  white-space: pre;
+  transition: background 0.25s;
+}
+
+.lineNo {
+  display: inline-block;
+  width: 1.8em;
+  color: var(--muted);
+  opacity: 0.6;
+  user-select: none;
+}
+
+.codeActive {
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* sets */
+.sets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.set {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font: 600 12px var(--font-mono);
+  color: var(--c);
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+  animation: pop 0.3s ease-out;
+}
+
+@keyframes pop {
+  from { transform: scale(0.85); opacity: 0.4; }
+}
+
+/* edge list */
+.edgeCard {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.edgeList {
+  list-style: none;
+  max-height: 280px;
+  overflow-y: auto;
+  position: relative;
+  margin: 0 -6px;
+  padding: 0 6px;
+}
+
+.edgeRow {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 48px 70px;
+  align-items: center;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  font: 13px var(--font-mono);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.edgeRow:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.edgeRow:disabled {
+  cursor: default;
+}
+
+.edgeName { font-weight: 600; }
+.edgeWeight { text-align: right; padding-right: 12px; }
+.edgeStatus { font-size: 11px; text-transform: uppercase; color: var(--muted); }
+
+.current {
+  background: color-mix(in srgb, var(--current) 18%, transparent) !important;
+}
+.current .edgeStatus { color: var(--current); font-weight: 700; }
+.accepted .edgeStatus { color: var(--accepted); font-weight: 700; }
+.accepted .edgeName { color: var(--accepted); }
+.rejected { opacity: 0.6; }
+.rejected .edgeStatus { color: var(--rejected); }
+.rejected .edgeName { text-decoration: line-through; }
+.skipped { opacity: 0.4; }
+
+@media (max-width: 420px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+}
