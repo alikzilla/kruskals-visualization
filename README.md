@@ -41,8 +41,14 @@ npm run dev      # start dev server
 npm test         # algorithm unit tests (Vitest)
 npm run lint
 npm run build    # production build in dist/
-npm run deploy   # publish dist/ to GitHub Pages
+npm run deploy   # manual alternative: push dist/ to a gh-pages branch
 ```
+
+### Deployment
+
+Every push to `main` is linted, tested, built and published to GitHub Pages by
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). Pull requests run the
+same checks without publishing. One-time setup: **Settings → Pages → Source: GitHub Actions**.
 
 ## Project structure
 
