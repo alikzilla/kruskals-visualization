@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from '../../lib/graph';
-import { componentColor } from '../../lib/theme';
+import { EDGE_STATUS, setFill } from '../../lib/theme';
 import styles from './graphCanvas.module.css';
 
 const NODE_R = 20;
@@ -9,13 +9,42 @@ function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
 }
 
+const pct = (x, y) => ({ left: `${(x / CANVAS_WIDTH) * 100}%`, top: `${(y / CANVAS_HEIGHT) * 100}%` });
+
 /**
  * SVG graph renderer + editor.
- * mode: 'move' | 'addNode' | 'addEdge' | 'delete'
+ * mode:  'move' | 'addNode' | 'addEdge' | 'delete'
+ * hover: { type: 'node' | 'edge' | 'set', id } | null — shared with the sidebar
  */
-function GraphCanvas({ graph, step, mode, onMoveNode, onAddNode, onAddEdge, onDeleteNode, onDeleteEdge, onSetWeight }) {
+function GraphCanvas({
+  graph,
+  step,
+  mode,
+  hover,
+  onHover,
+  onMoveNode,
+  onAddNode,
+  onAddEdge,
+  onDeleteNode,
+  onDeleteEdge,
+  onSetWeight,
+}) {
   const svgRef = useRef(null);
+  const wrapRef = useRef(null);
   const drag = useRef(null);
+  // Marks grow as the canvas shrinks so labels stay legible on phones.
+  const [k, setK] = useState(1);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width || CANVAS_WIDTH;
+      setK(Math.round(clamp((CANVAS_WIDTH / w) * 0.6, 1, 1.7) * 20) / 20);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const r = NODE_R * k;
   const [edgeSource, setEdgeSource] = useState(null);
   const [cursor, setCursor] = useState(null);
   const [editing, setEditing] = useState(null); // { id, value }
@@ -28,9 +57,20 @@ function GraphCanvas({ graph, step, mode, onMoveNode, onAddNode, onAddEdge, onDe
   const byId = new Map(graph.nodes.map((n) => [n.id, n]));
   const status = step?.status ?? {};
   const roots = step?.roots;
+  const setSlot = step?.setSlot ?? {};
   const current = step?.current;
-  const setSize = {};
-  if (roots) Object.values(roots).forEach((r) => (setSize[r] = (setSize[r] ?? 0) + 1));
+  const currentEdge = graph.edges.find((e) => e.id === current);
+
+  const members = (root) => graph.nodes.filter((n) => roots?.[n.id] === root);
+
+  // ---- hover / focus focus-set: which vertices stay at full strength ----
+  let focusNodes = null;
+  if (hover && !drag.current) {
+    if (hover.type === 'set' && roots) focusNodes = new Set(members(hover.id).map((n) => n.id));
+    else if (hover.type === 'node' && byId.has(hover.id))
+      focusNodes = new Set(roots ? members(roots[hover.id]).map((n) => n.id) : [hover.id]);
+  }
+  const hoveredEdge = hover?.type === 'edge' ? graph.edges.find((e) => e.id === hover.id) : null;
 
   const toSvg = (evt) => {
     const svg = svgRef.current;
@@ -38,13 +78,14 @@ function GraphCanvas({ graph, step, mode, onMoveNode, onAddNode, onAddEdge, onDe
     pt.x = evt.clientX;
     pt.y = evt.clientY;
     const p = pt.matrixTransform(svg.getScreenCTM().inverse());
-    return { x: clamp(p.x, NODE_R, CANVAS_WIDTH - NODE_R), y: clamp(p.y, NODE_R, CANVAS_HEIGHT - NODE_R) };
+    return { x: clamp(p.x, r, CANVAS_WIDTH - r), y: clamp(p.y, r, CANVAS_HEIGHT - r) };
   };
 
   const onNodePointerDown = (evt, node) => {
     evt.stopPropagation();
     if (mode === 'delete') {
       onDeleteNode(node.id);
+      onHover(null);
       return;
     }
     if (mode === 'addEdge') {
@@ -58,6 +99,7 @@ function GraphCanvas({ graph, step, mode, onMoveNode, onAddNode, onAddEdge, onDe
     }
     evt.currentTarget.setPointerCapture?.(evt.pointerId);
     drag.current = { id: node.id };
+    onHover(null);
   };
 
   const onPointerMove = (evt) => {
@@ -90,14 +132,65 @@ function GraphCanvas({ graph, step, mode, onMoveNode, onAddNode, onAddEdge, onDe
     setEditing(null);
   };
 
+  const mid = (e) => {
+    const a = byId.get(e.from);
+    const b = byId.get(e.to);
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  };
+
   const editEdge = graph.edges.find((e) => e.id === editing?.id);
-  const editPos = editEdge && {
-    left: `${(((byId.get(editEdge.from).x + byId.get(editEdge.to).x) / 2) / CANVAS_WIDTH) * 100}%`,
-    top: `${(((byId.get(editEdge.from).y + byId.get(editEdge.to).y) / 2) / CANVAS_HEIGHT) * 100}%`,
+
+  const hoverProps = (target) => ({
+    onPointerEnter: () => !drag.current && onHover(target),
+    onPointerLeave: () => onHover(null),
+    onFocus: () => onHover(target),
+    onBlur: () => onHover(null),
+  });
+
+  // ---- tooltip content (values lead, labels follow) ----
+  let tooltip = null;
+  if (hoveredEdge && !editing) {
+    const a = byId.get(hoveredEdge.from);
+    const b = byId.get(hoveredEdge.to);
+    const s = status[hoveredEdge.id] ?? 'pending';
+    tooltip = {
+      pos: mid(hoveredEdge),
+      value: hoveredEdge.weight,
+      unit: 'weight',
+      title: `Edge ${a.label}–${b.label}`,
+      detail: (
+        <span className={styles[`tip_${s}`]}>
+          <i aria-hidden="true">{EDGE_STATUS[s].icon}</i> {EDGE_STATUS[s].label}
+        </span>
+      ),
+    };
+  } else if (hover?.type === 'node' && byId.has(hover.id) && !drag.current) {
+    const n = byId.get(hover.id);
+    const degree = graph.edges.filter((e) => e.from === n.id || e.to === n.id).length;
+    const set = roots ? members(roots[n.id]) : null;
+    tooltip = {
+      pos: { x: n.x, y: n.y - r },
+      value: n.label,
+      unit: `${degree} edge${degree === 1 ? '' : 's'}`,
+      title: set ? (set.length > 1 ? `Set of ${set.length} vertices` : 'In its own set') : 'Vertex',
+      detail: set && set.length > 1 ? `{ ${set.map((m) => m.label).join(', ')} }` : null,
+    };
+  }
+
+  const nodeLabel = (n) => {
+    if (!roots) return `Vertex ${n.label}`;
+    const set = members(roots[n.id]);
+    return set.length > 1
+      ? `Vertex ${n.label}, in set { ${set.map((m) => m.label).join(', ')} }`
+      : `Vertex ${n.label}, in its own set`;
   };
 
   return (
-    <div className={`${styles.wrap} ${styles[`mode_${mode}`]}`}>
+    <div
+      ref={wrapRef}
+      className={`${styles.wrap} ${styles[`mode_${mode}`]}`}
+      style={{ '--k': k }}
+    >
       <svg
         ref={svgRef}
         className={styles.svg}
@@ -106,8 +199,7 @@ function GraphCanvas({ graph, step, mode, onMoveNode, onAddNode, onAddEdge, onDe
         onPointerUp={endDrag}
         onPointerLeave={endDrag}
         onClick={onBackgroundClick}
-        role="img"
-        aria-label="Graph visualization"
+        aria-label={`Graph with ${graph.nodes.length} vertices and ${graph.edges.length} edges`}
       >
         <defs>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -131,18 +223,22 @@ function GraphCanvas({ graph, step, mode, onMoveNode, onAddNode, onAddEdge, onDe
           const b = byId.get(e.to);
           if (!a || !b) return null;
           const s = status[e.id] ?? 'pending';
+          const dim = focusNodes && !(focusNodes.has(e.from) && focusNodes.has(e.to));
           return (
             <g
               key={e.id}
-              className={`${styles.edge} ${styles[s]}`}
+              className={`${styles.edge} ${styles[s]} ${dim ? styles.dim : ''} ${hoveredEdge?.id === e.id ? styles.hovered : ''}`}
               onPointerDown={(evt) => {
                 if (mode === 'delete') {
                   evt.stopPropagation();
                   onDeleteEdge(e.id);
+                  onHover(null);
                 }
               }}
+              {...hoverProps({ type: 'edge', id: e.id })}
             >
               <line className={styles.hit} x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
+              <line className={styles.ring} x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
               <line className={styles.line} x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
             </g>
           );
@@ -153,21 +249,34 @@ function GraphCanvas({ graph, step, mode, onMoveNode, onAddNode, onAddEdge, onDe
           const b = byId.get(e.to);
           if (!a || !b) return null;
           const s = status[e.id] ?? 'pending';
-          const mx = (a.x + b.x) / 2;
-          const my = (a.y + b.y) / 2;
+          const { x, y } = mid(e);
           const w = String(e.weight).length * 8 + 14;
+          const dim = focusNodes && !(focusNodes.has(e.from) && focusNodes.has(e.to));
           return (
             <g
               key={`w-${e.id}`}
-              className={`${styles.weight} ${styles[s]}`}
-              transform={`translate(${mx} ${my})`}
+              className={`${styles.weight} ${styles[s]} ${dim ? styles.dim : ''}`}
+              transform={`translate(${x} ${y}) scale(${k})`}
+              tabIndex={0}
+              role="button"
+              aria-label={`Edge ${a.label}–${b.label}, weight ${e.weight}, ${EDGE_STATUS[s].label}. Press Enter to edit the weight.`}
               onPointerDown={(evt) => {
                 evt.stopPropagation();
-                if (mode === 'delete') onDeleteEdge(e.id);
-                else setEditing({ id: e.id, value: String(e.weight) });
+                if (mode === 'delete') {
+                  onDeleteEdge(e.id);
+                  onHover(null);
+                } else setEditing({ id: e.id, value: String(e.weight) });
               }}
+              onKeyDown={(evt) => {
+                if (evt.key === 'Enter') {
+                  evt.preventDefault();
+                  evt.stopPropagation();
+                  setEditing({ id: e.id, value: String(e.weight) });
+                }
+              }}
+              {...hoverProps({ type: 'edge', id: e.id })}
             >
-              <title>Click to edit weight</title>
+              <rect className={styles.weightHit} x={-w / 2 - 6} y={-17} width={w + 12} height={34} rx={17} />
               <rect x={-w / 2} y={-11} width={w} height={22} rx={11} />
               <text dy="0.35em">{e.weight}</text>
             </g>
@@ -175,32 +284,52 @@ function GraphCanvas({ graph, step, mode, onMoveNode, onAddNode, onAddEdge, onDe
         })}
 
         {graph.nodes.map((n) => {
-          const fill = roots && setSize[roots[n.id]] > 1 ? componentColor(roots[n.id]) : undefined;
-          const touched =
-            current &&
-            graph.edges.some((e) => e.id === current && (e.from === n.id || e.to === n.id));
+          const root = roots?.[n.id];
+          const merged = roots && Object.prototype.hasOwnProperty.call(setSlot, root);
+          const touched = currentEdge && (currentEdge.from === n.id || currentEdge.to === n.id);
+          const dim = focusNodes && !focusNodes.has(n.id);
           return (
             <g
               key={n.id}
-              className={`${styles.node} ${touched ? styles.nodeActive : ''} ${edgeSource === n.id ? styles.nodeSource : ''}`}
+              className={[
+                styles.node,
+                merged ? styles.merged : styles.single,
+                touched ? styles.nodeActive : '',
+                edgeSource === n.id ? styles.nodeSource : '',
+                dim ? styles.dim : '',
+              ].join(' ')}
               transform={`translate(${n.x} ${n.y})`}
+              tabIndex={0}
+              role="img"
+              aria-label={nodeLabel(n)}
               onPointerDown={(evt) => onNodePointerDown(evt, n)}
+              {...hoverProps({ type: 'node', id: n.id })}
             >
-              <title>
-                {roots ? `${n.label} — set of ${graph.nodes.find((m) => m.id === roots[n.id])?.label}` : n.label}
-              </title>
-              <circle r={NODE_R + 6} className={styles.halo} />
-              <circle r={NODE_R} style={fill ? { fill, stroke: fill } : undefined} />
-              <text dy="0.35em">{n.label}</text>
+              <circle r={r + 8} className={styles.nodeHit} />
+              <circle r={r + 6} className={styles.halo} />
+              <circle r={r} className={styles.body} style={merged ? { fill: setFill(setSlot[root]) } : undefined} />
+              <text dy="0.35em" style={{ fontSize: 14 * k }}>
+                {n.label}
+              </text>
             </g>
           );
         })}
       </svg>
 
+      {tooltip && (
+        <div className={styles.tooltip} style={pct(tooltip.pos.x, tooltip.pos.y)} role="tooltip">
+          <div className={styles.tipValue}>
+            <strong>{tooltip.value}</strong> <span>{tooltip.unit}</span>
+          </div>
+          <div className={styles.tipTitle}>{tooltip.title}</div>
+          {tooltip.detail && <div className={styles.tipDetail}>{tooltip.detail}</div>}
+        </div>
+      )}
+
       {editEdge && (
         <form
           className={styles.weightEditor}
-          style={editPos}
+          style={pct(mid(editEdge).x, mid(editEdge).y)}
           onSubmit={(evt) => {
             evt.preventDefault();
             commitWeight();
@@ -222,7 +351,13 @@ function GraphCanvas({ graph, step, mode, onMoveNode, onAddNode, onAddEdge, onDe
 
       {graph.nodes.length === 0 && (
         <div className={styles.empty}>
-          Empty canvas — choose <b>Add vertex</b> and click to place vertices, or generate a random graph.
+          <p>
+            <strong>Empty canvas</strong>
+          </p>
+          <p>
+            Choose <b>Add vertex</b> and click to place vertices, then <b>Add edge</b> to connect them — or press{' '}
+            <b>New graph</b>.
+          </p>
         </div>
       )}
     </div>

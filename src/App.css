@@ -11,14 +11,26 @@
   --grid: #eceef6;
   --border: #e1e4ee;
   --text: #1c1f33;
+  --text-secondary: #52566b;
   --muted: #6b7088;
   --header: #212153;
   --primary: #4f46e5;
-  --node: #475069;
-  --edge: #b6bbcf;
-  --current: #f59e0b;
-  --accepted: #059669;
-  --rejected: #e11d48;
+  --edge: #868ca3; /* 3.2:1 on canvas */
+  --node-stroke: #6b7088;
+
+  /* Status (edge states) — fixed in both themes, always paired with a
+     dash pattern / stroke width and an icon + label. */
+  --good: #0ca30c;
+  --warning: #fab219;
+  --critical: #d03b3b;
+  --on-status: #0b0b0b;
+
+  /* Union-find sets — categorical, validated all-pairs (CVD) on this canvas. */
+  --set-1: #2a78d6;
+  --set-2: #eb6834;
+  --set-3: #1baf7a;
+  --set-other: #7d869c;
+  --on-set: #0b0b0b;
   --shadow-sm: 0 1px 2px rgba(20, 22, 50, 0.06);
   --shadow: 0 8px 24px rgba(20, 22, 50, 0.12);
 
@@ -33,14 +45,18 @@
   --grid: #1b1f36;
   --border: #2a2f4a;
   --text: #e7e9f5;
+  --text-secondary: #b9bdd3;
   --muted: #9298b5;
   --header: #15153a;
   --primary: #818cf8;
-  --node: #5b6485;
-  --edge: #4a5170;
-  --current: #fbbf24;
-  --accepted: #34d399;
-  --rejected: #fb7185;
+  --edge: #6b7396; /* 3.9:1 on canvas */
+  --node-stroke: #9298b5;
+
+  /* Dark steps of the same hues, validated against the dark canvas. */
+  --set-1: #3987e5;
+  --set-2: #d95926;
+  --set-3: #199e70;
+  --set-other: #9aa3b8;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 

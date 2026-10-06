@@ -137,6 +137,49 @@ describe('kruskalSteps', () => {
     expect(Object.values(steps[0].status).every((s) => s === 'pending')).toBe(true);
   });
 
+  it('keeps set colours stable and never shows a slot twice', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const graph = generateGraph({ seed, nodeCount: 6 + (seed % 14) });
+      const { steps } = kruskalSteps(graph);
+      let prev = null;
+      steps.forEach((step) => {
+        if (!step.roots) return;
+        const slots = Object.values(step.setSlot).filter((s) => s !== null);
+        expect(new Set(slots).size).toBe(slots.length);
+        slots.forEach((s) => expect(s).toBeLessThan(3));
+        // A set whose membership didn't change keeps its colour; a merged set
+        // takes the colour of its larger side when that side had one.
+        if (prev) {
+          const members = (st, r) => graph.nodes.filter((n) => st.roots[n.id] === r).map((n) => n.id).join();
+          graph.nodes.forEach((n) => {
+            const before = prev.setSlot[prev.roots[n.id]];
+            const after = step.setSlot[step.roots[n.id]];
+            const same = members(prev, prev.roots[n.id]) === members(step, step.roots[n.id]);
+            if (same && before !== undefined) expect(after).toBe(before);
+          });
+          if (step.kind === 'accept') {
+            const e = graph.edges.find((x) => x.id === step.current);
+            const sizeOf = (id) => graph.nodes.filter((n) => prev.roots[n.id] === prev.roots[id]).length;
+            const big = sizeOf(e.from) >= sizeOf(e.to) ? e.from : e.to;
+            const bigSlot = prev.setSlot[prev.roots[big]];
+            if (bigSlot != null) expect(step.setSlot[step.roots[big]]).toBe(bigSlot);
+          }
+        }
+        prev = step;
+      });
+    }
+  });
+
+  it('a merged set inherits the colour of the larger side', () => {
+    const graph = g(5, [[0, 1, 1], [1, 2, 2], [3, 4, 3], [2, 3, 4]]);
+    const { steps } = kruskalSteps(graph);
+    const accepts = steps.filter((s) => s.kind === 'accept');
+    const slotOf = (s, id) => s.setSlot[s.roots[id]];
+    expect(slotOf(accepts[0], 0)).toBe(0); // {A,B} gets slot 0
+    expect(slotOf(accepts[2], 3)).toBe(1); // {D,E} gets slot 1
+    expect(slotOf(accepts[3], 3)).toBe(0); // merged into the larger {A,B,C}, keeps slot 0
+  });
+
   it('handles an empty graph', () => {
     const { steps } = kruskalSteps({ nodes: [], edges: [] });
     expect(steps).toHaveLength(1);

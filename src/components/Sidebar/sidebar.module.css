@@ -33,32 +33,38 @@
   font-size: 13px;
 }
 
-/* stats */
-.stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+/* ---------- hero stat ---------- */
+.hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 8px;
 }
 
-.stat {
+.hero > div {
   display: flex;
   flex-direction: column;
-  gap: 2px;
 }
 
-.stat span {
-  font-size: 11px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.heroLabel {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
-.stat strong {
-  font: 700 20px var(--font-mono);
+/* Proportional figures, same sans as the UI. */
+.heroValue {
+  font: 700 36px/1.1 var(--font);
+  letter-spacing: -0.02em;
+  color: var(--text);
 }
 
-.accent {
-  color: var(--accepted);
+.doneBadge {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--on-status);
+  background: var(--good);
 }
 
 .progress {
@@ -71,17 +77,35 @@
 
 .progress div {
   height: 100%;
-  background: var(--accepted);
+  border-radius: 3px;
+  background: var(--good);
   transition: width 0.4s;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.facts b {
+  color: var(--text);
 }
 
 .warn {
   margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
   font-size: 12px;
-  color: var(--current);
+  color: var(--text);
+  background: color-mix(in srgb, var(--warning) 16%, transparent);
 }
 
-/* pseudocode */
+/* ---------- pseudocode ---------- */
 .code {
   font: 12.5px/1.65 var(--font-mono);
   overflow-x: auto;
@@ -98,47 +122,102 @@
   display: inline-block;
   width: 1.8em;
   color: var(--muted);
-  opacity: 0.6;
   user-select: none;
 }
 
 .codeActive {
-  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+  box-shadow: inset 3px 0 0 var(--primary);
   font-weight: 700;
-  color: var(--primary);
 }
 
-/* sets */
+/* ---------- sets: colour beside the text, text stays ink ---------- */
 .sets {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  list-style: none;
 }
 
 .set {
-  padding: 3px 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 6px;
   border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
   font: 600 12px var(--font-mono);
-  color: var(--c);
-  background: color-mix(in srgb, var(--c) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+  cursor: default;
   animation: pop 0.3s ease-out;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.set:hover,
+.setActive {
+  border-color: var(--text-secondary);
+  background: var(--surface);
+}
+
+.swatch {
+  display: inline-block;
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.swatchHollow {
+  border: 2px solid var(--node-stroke);
+  background: var(--surface);
+}
+
+.singles {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  font: 12px var(--font-mono);
+  color: var(--text-secondary);
 }
 
 @keyframes pop {
-  from { transform: scale(0.85); opacity: 0.4; }
+  from { transform: scale(0.9); opacity: 0.4; }
 }
 
-/* edge list */
+/* ---------- edge table ---------- */
 .edgeCard {
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
 
+.tableHead,
+.edgeRow {
+  display: grid;
+  grid-template-columns: 1fr 56px 88px;
+  align-items: center;
+}
+
+.tableHead {
+  padding: 0 8px 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.tableHead span:nth-child(2) {
+  text-align: right;
+  padding-right: 14px;
+}
+
 .edgeList {
   list-style: none;
-  max-height: 280px;
+  max-height: 300px;
   overflow-y: auto;
   position: relative;
   margin: 0 -6px;
@@ -147,43 +226,58 @@
 
 .edgeRow {
   width: 100%;
-  display: grid;
-  grid-template-columns: 1fr 48px 70px;
-  align-items: center;
-  padding: 5px 8px;
+  padding: 6px 8px;
   border: 0;
   border-radius: 7px;
   background: transparent;
   color: var(--text);
-  font: 13px var(--font-mono);
+  font: 13px var(--font);
   text-align: left;
   cursor: pointer;
   transition: background 0.2s, opacity 0.2s;
 }
 
-.edgeRow:hover:not(:disabled) {
-  background: var(--surface-2);
-}
-
-.edgeRow:disabled {
+.edgeRow[aria-disabled='true'] {
   cursor: default;
 }
 
+.edgeRow:hover,
+.rowHover {
+  background: var(--surface-2);
+}
+
 .edgeName { font-weight: 600; }
-.edgeWeight { text-align: right; padding-right: 12px; }
-.edgeStatus { font-size: 11px; text-transform: uppercase; color: var(--muted); }
+
+.edgeWeight {
+  text-align: right;
+  padding-right: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.edgeStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.edgeStatus i {
+  font-style: normal;
+  width: 1em;
+  text-align: center;
+  font-weight: 700;
+  color: var(--muted);
+}
 
 .current {
-  background: color-mix(in srgb, var(--current) 18%, transparent) !important;
+  background: color-mix(in srgb, var(--warning) 22%, transparent) !important;
+  box-shadow: inset 3px 0 0 var(--warning);
 }
-.current .edgeStatus { color: var(--current); font-weight: 700; }
-.accepted .edgeStatus { color: var(--accepted); font-weight: 700; }
-.accepted .edgeName { color: var(--accepted); }
-.rejected { opacity: 0.6; }
-.rejected .edgeStatus { color: var(--rejected); }
-.rejected .edgeName { text-decoration: line-through; }
-.skipped { opacity: 0.4; }
-
-@media (max-width: 420px) {
-  .stats { grid-template-columns: repeat(2, 1fr); }
-}
+.current .edgeStatus { color: var(--text); font-weight: 600; }
+.current .edgeStatus i { color: var(--warning); }
+.accepted .edgeStatus { color: var(--text); font-weight: 600; }
+.accepted .edgeStatus i { color: var(--good); }
+.rejected .edgeStatus i { color: var(--critical); }
+.rejected .edgeName { text-decoration: line-through; color: var(--text-secondary); }
+.skipped { opacity: 0.55; }

@@ -16,70 +16,103 @@
   height: 100%;
 }
 
+.svg :focus {
+  outline: none;
+}
+
 .mode_addNode .svg { cursor: crosshair; }
 .mode_addEdge .node { cursor: alias; }
 .mode_delete .node,
 .mode_delete .edge,
 .mode_delete .weight { cursor: not-allowed; }
 
+/* Recessive, solid hairline grid. */
 .gridLine {
   fill: none;
   stroke: var(--grid);
   stroke-width: 1;
 }
 
-/* ---------- edges ---------- */
+/* ---------- edges: status job, never colour alone ----------
+   pending  thin solid neutral
+   current  thick solid warning + pulse + halo on endpoints
+   accepted thick solid good
+   rejected thin dashed critical, faded
+   skipped  thin dotted neutral, faded */
 .edge .hit {
   stroke: transparent;
-  stroke-width: 16;
+  stroke-width: calc(24px * var(--k, 1));
+}
+
+.edge .ring {
+  stroke: var(--canvas);
+  stroke-width: 0;
+  stroke-linecap: round;
 }
 
 .edge .line {
   stroke: var(--edge);
-  stroke-width: 3;
+  stroke-width: calc(2px * var(--k, 1));
   stroke-linecap: round;
   transition: stroke 0.3s, stroke-width 0.3s, opacity 0.3s;
 }
 
+.edge.current .ring,
+.edge.accepted .ring { stroke-width: calc(9px * var(--k, 1)); }
+
 .edge.current .line {
-  stroke: var(--current);
-  stroke-width: 6;
+  stroke: var(--warning);
+  stroke-width: calc(5px * var(--k, 1));
   animation: pulse 0.9s ease-in-out infinite;
 }
 
 .edge.accepted .line {
-  stroke: var(--accepted);
-  stroke-width: 6;
+  stroke: var(--good);
+  stroke-width: calc(5px * var(--k, 1));
 }
 
 .edge.rejected .line {
-  stroke: var(--rejected);
-  stroke-dasharray: 6 7;
-  opacity: 0.45;
+  stroke: var(--critical);
+  stroke-dasharray: 6 6;
+  opacity: 0.6;
 }
 
 .edge.skipped .line {
-  opacity: 0.2;
-  stroke-dasharray: 2 6;
+  opacity: 0.35;
+  stroke-dasharray: 1 6;
+}
+
+.edge.hovered .line {
+  stroke-width: calc(7px * var(--k, 1));
+  opacity: 1;
+}
+
+.edge.pending.hovered .line,
+.edge.skipped.hovered .line {
+  stroke: var(--text-secondary);
 }
 
 .ghostEdge {
-  stroke: var(--current);
+  stroke: var(--warning);
   stroke-width: 3;
   stroke-dasharray: 6 6;
   pointer-events: none;
 }
 
 @keyframes pulse {
-  50% { stroke-width: 9; }
+  50% { stroke-width: calc(8px * var(--k, 1)); }
 }
 
-/* ---------- weight badges ---------- */
+/* ---------- weight badges: text wears ink tokens ---------- */
 .weight {
   cursor: text;
 }
 
-.weight rect {
+.weightHit {
+  fill: transparent;
+}
+
+.weight rect:not(.weightHit) {
   fill: var(--surface);
   stroke: var(--edge);
   stroke-width: 1.5;
@@ -87,38 +120,64 @@
 }
 
 .weight text {
-  font: 600 12px var(--font-mono);
+  font: 600 12px var(--font);
+  font-variant-numeric: tabular-nums;
   text-anchor: middle;
   fill: var(--text);
   pointer-events: none;
 }
 
-.weight.current rect { fill: var(--current); stroke: var(--current); }
-.weight.accepted rect { fill: var(--accepted); stroke: var(--accepted); }
+.weight.current rect:not(.weightHit) { fill: var(--warning); stroke: var(--warning); }
+.weight.accepted rect:not(.weightHit) { fill: var(--good); stroke: var(--good); }
+/* Ink on warning 10.7:1, on good 5.9:1. */
 .weight.current text,
-.weight.accepted text { fill: #fff; }
-.weight.rejected rect { stroke: var(--rejected); }
-.weight.rejected text { fill: var(--rejected); text-decoration: line-through; }
-.weight.rejected,
-.weight.skipped { opacity: 0.55; }
+.weight.accepted text { fill: var(--on-status); }
+.weight.rejected rect:not(.weightHit) { stroke: var(--critical); stroke-dasharray: 3 2; }
+.weight.rejected text { fill: var(--text-secondary); text-decoration: line-through; }
+.weight.skipped { opacity: 0.6; }
 
-/* ---------- nodes ---------- */
+.weight:focus-visible rect:not(.weightHit) {
+  stroke: var(--primary);
+  stroke-width: 3;
+}
+
+/* ---------- vertices ---------- */
 .node {
   cursor: grab;
 }
 
 .node:active { cursor: grabbing; }
 
-.node circle:not(.halo) {
-  fill: var(--node);
-  stroke: var(--node);
-  stroke-width: 2;
+.nodeHit {
+  fill: transparent;
+}
+
+/* Own set → hollow. Part of a merged set → filled with the set's colour. */
+.node .body {
+  fill: var(--surface);
+  stroke: var(--node-stroke);
+  stroke-width: 2.5;
   transition: fill 0.4s, stroke 0.4s;
 }
 
+.merged .body {
+  stroke: var(--canvas);
+  stroke-width: 2;
+}
+
+.node text {
+  font: 700 14px var(--font);
+  text-anchor: middle;
+  fill: var(--text);
+  pointer-events: none;
+}
+
+/* Ink on every set fill: ≥ 4.46:1. */
+.merged text { fill: var(--on-set); }
+
 .node .halo {
   fill: none;
-  stroke: var(--current);
+  stroke: var(--warning);
   stroke-width: 3;
   opacity: 0;
   transition: opacity 0.2s;
@@ -131,27 +190,85 @@
   stroke-dasharray: 5 4;
 }
 
-.node:hover .halo { opacity: 0.5; }
-.nodeActive:hover .halo,
-.nodeSource:hover .halo { opacity: 1; }
+.node:hover .halo,
+.node:focus-visible .halo {
+  opacity: 1;
+  stroke: var(--text-secondary);
+}
 
-.node text {
-  font: 700 14px var(--font);
-  text-anchor: middle;
-  fill: #fff;
-  pointer-events: none;
+.nodeActive:hover .halo { stroke: var(--warning); }
+
+/* ---------- hover / focus emphasis ---------- */
+.edge,
+.weight,
+.node {
+  transition: opacity 0.2s;
+}
+
+.dim {
+  opacity: 0.18 !important;
 }
 
 /* ---------- overlays ---------- */
+.tooltip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 14px));
+  padding: 8px 11px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+  white-space: nowrap;
+  font-size: 12px;
+  z-index: 2;
+  animation: fadeIn 0.12s ease-out;
+}
+
+.tipValue strong {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.tipValue span,
+.tipTitle {
+  color: var(--text-secondary);
+}
+
+.tipDetail {
+  margin-top: 4px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.tipDetail i {
+  font-style: normal;
+  display: inline-block;
+  width: 1.1em;
+  text-align: center;
+}
+
+.tip_current i { color: var(--warning); }
+.tip_accepted i { color: var(--good); }
+.tip_rejected i { color: var(--critical); }
+.tip_pending i,
+.tip_skipped i { color: var(--muted); }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+}
+
 .weightEditor {
   position: absolute;
   transform: translate(-50%, -50%);
+  z-index: 3;
 }
 
 .weightEditor input {
   width: 64px;
   padding: 4px 6px;
-  font: 600 14px var(--font-mono);
+  font: 600 14px var(--font);
   text-align: center;
   border: 2px solid var(--primary);
   border-radius: 8px;
@@ -163,14 +280,31 @@
 .empty {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   padding: 24px;
   text-align: center;
-  color: var(--muted);
+  color: var(--text-secondary);
   pointer-events: none;
+}
+
+.empty strong {
+  color: var(--text);
+  font-size: 16px;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .edge.current .line { animation: none; }
+  .tooltip { animation: none; }
+}
+
+/* Windows high-contrast: strokes keep their dash patterns and widths. */
+@media (forced-colors: active) {
+  .edge .line { stroke: CanvasText; }
+  .edge.current .line,
+  .edge.accepted .line { stroke: Highlight; }
+  .node .body { stroke: CanvasText; }
 }

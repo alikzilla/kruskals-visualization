@@ -1,39 +1,42 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { PSEUDOCODE } from '../../lib/kruskal';
-import { componentColor } from '../../lib/theme';
+import { EDGE_STATUS, setFill } from '../../lib/theme';
 import styles from './sidebar.module.css';
 
-const STATUS_TEXT = {
-  pending: '—',
-  current: 'checking',
-  accepted: 'added',
-  rejected: 'cycle',
-  skipped: 'skipped',
-};
-
+/** The story is one number — total tree weight leads, progress supports it. */
 function Stats({ graph, step, needed, components }) {
-  const items = [
-    { label: 'Vertices', value: graph.nodes.length },
-    { label: 'Edges', value: graph.edges.length },
-    { label: 'Tree edges', value: `${step.accepted}/${needed}` },
-    { label: 'Total weight', value: step.weight, accent: true },
-  ];
+  const done = step.kind === 'done';
   return (
-    <section className={styles.card}>
-      <div className={styles.stats}>
-        {items.map((it) => (
-          <div key={it.label} className={styles.stat}>
-            <span>{it.label}</span>
-            <strong className={it.accent ? styles.accent : ''}>{it.value}</strong>
-          </div>
-        ))}
+    <section className={styles.card} aria-label="Progress">
+      <div className={styles.hero}>
+        <div>
+          <span className={styles.heroLabel}>{done ? 'Minimum total weight' : 'Tree weight so far'}</span>
+          <strong className={styles.heroValue}>{step.weight}</strong>
+        </div>
+        {done && <span className={styles.doneBadge}>✓ Complete</span>}
       </div>
-      <div className={styles.progress} aria-hidden="true">
+      <div
+        className={styles.progress}
+        role="progressbar"
+        aria-label="Tree edges found"
+        aria-valuemin={0}
+        aria-valuemax={needed}
+        aria-valuenow={step.accepted}
+      >
         <div style={{ width: `${needed ? (step.accepted / needed) * 100 : 0}%` }} />
       </div>
+      <p className={styles.facts}>
+        <span>
+          <b>{step.accepted}</b> of <b>{needed}</b> tree edges
+        </span>
+        <span>
+          {graph.nodes.length} vertices · {graph.edges.length} edges
+        </span>
+      </p>
       {components > 1 && (
         <p className={styles.warn}>
-          Graph is disconnected ({components} parts) — Kruskal will build a spanning <em>forest</em>.
+          <span aria-hidden="true">⚠</span> Graph is disconnected ({components} parts), so Kruskal builds a spanning{' '}
+          <em>forest</em>.
         </p>
       )}
     </section>
@@ -46,7 +49,7 @@ function Pseudocode({ line }) {
       <h3>Pseudocode</h3>
       <pre className={styles.code}>
         {PSEUDOCODE.map((text, i) => (
-          <div key={i} className={i === line ? styles.codeActive : ''}>
+          <div key={i} className={i === line ? styles.codeActive : ''} aria-current={i === line ? 'step' : undefined}>
             <span className={styles.lineNo}>{i + 1}</span>
             {text}
           </div>
@@ -56,41 +59,67 @@ function Pseudocode({ line }) {
   );
 }
 
-function Sets({ graph, step }) {
-  const groups = useMemo(() => {
-    if (!step.roots) return [];
+function Sets({ graph, step, hover, onHover }) {
+  const { merged, singles } = useMemo(() => {
+    if (!step.roots) return { merged: [], singles: [] };
     const map = new Map();
     graph.nodes.forEach((n) => {
       const r = step.roots[n.id];
       if (!map.has(r)) map.set(r, []);
       map.get(r).push(n);
     });
-    return [...map.entries()].sort((a, b) => b[1].length - a[1].length);
+    const all = [...map.entries()];
+    return {
+      merged: all.filter(([, m]) => m.length > 1).sort((a, b) => b[1].length - a[1].length),
+      singles: all.filter(([, m]) => m.length === 1).map(([, m]) => m[0]),
+    };
   }, [graph.nodes, step.roots]);
+
+  const total = merged.length + singles.length;
 
   return (
     <section className={styles.card}>
       <h3>
-        Union-Find sets <small>{groups.length ? `${groups.length} set${groups.length > 1 ? 's' : ''}` : ''}</small>
+        Union-Find sets <small>{total ? `${total} set${total > 1 ? 's' : ''}` : ''}</small>
       </h3>
-      {groups.length === 0 ? (
-        <p className={styles.muted}>Sets are created after the edges are sorted.</p>
+      {!step.roots ? (
+        <p className={styles.muted}>Each vertex gets its own set right after the edges are sorted.</p>
       ) : (
-        <div className={styles.sets}>
-          {groups.map(([root, members]) => (
-            <div key={root} className={styles.set} style={{ '--c': members.length > 1 ? componentColor(root) : 'var(--muted)' }}>
-              {'{ '}
-              {members.map((m) => m.label).join(', ')}
-              {' }'}
-            </div>
+        <ul className={styles.sets}>
+          {merged.map(([root, members]) => (
+            <li key={root}>
+              <button
+                type="button"
+                className={`${styles.set} ${hover?.type === 'set' && hover.id === root ? styles.setActive : ''}`}
+                onPointerEnter={() => onHover({ type: 'set', id: root })}
+                onPointerLeave={() => onHover(null)}
+                onFocus={() => onHover({ type: 'set', id: root })}
+                onBlur={() => onHover(null)}
+                aria-label={`Set of ${members.length}: ${members.map((m) => m.label).join(', ')}`}
+              >
+                <i className={styles.swatch} style={{ background: setFill(step.setSlot[root]) }} aria-hidden="true" />
+                {'{ '}
+                {members.map((m) => m.label).join(', ')}
+                {' }'}
+              </button>
+            </li>
           ))}
-        </div>
+          {singles.length > 0 && (
+            <li className={styles.singles}>
+              <i className={`${styles.swatch} ${styles.swatchHollow}`} aria-hidden="true" />
+              <span>
+                {merged.length ? 'Still alone: ' : 'Alone: '}
+                {singles.map((n) => n.label).join(', ')}
+              </span>
+            </li>
+          )}
+        </ul>
       )}
     </section>
   );
 }
 
-function EdgeList({ graph, sorted, step, steps, onSeek }) {
+function EdgeList({ graph, sorted, step, steps, onSeek, hover, onHover }) {
   const label = useMemo(() => new Map(graph.nodes.map((n) => [n.id, n.label])), [graph.nodes]);
   const firstStep = useMemo(() => {
     const m = {};
@@ -117,26 +146,38 @@ function EdgeList({ graph, sorted, step, steps, onSeek }) {
   return (
     <section className={`${styles.card} ${styles.edgeCard}`}>
       <h3>
-        Edges <small>{sortedVisible ? 'sorted by weight' : 'unsorted'}</small>
+        Edges <small>{sortedVisible ? 'sorted by weight' : 'in input order'}</small>
       </h3>
-      <ol className={styles.edgeList} ref={listRef}>
+      <div className={styles.tableHead} aria-hidden="true">
+        <span>Edge</span>
+        <span>Weight</span>
+        <span>Status</span>
+      </div>
+      <ol className={styles.edgeList} ref={listRef} aria-label="Edges">
         {rows.map((e) => {
           const s = step.status[e.id] ?? 'pending';
           const target = firstStep[e.id];
+          const name = `${label.get(e.from)}–${label.get(e.to)}`;
           return (
             <li key={e.id} data-current={s === 'current'}>
               <button
                 type="button"
-                className={`${styles.edgeRow} ${styles[s]}`}
+                className={`${styles.edgeRow} ${styles[s]} ${hover?.type === 'edge' && hover.id === e.id ? styles.rowHover : ''}`}
                 onClick={() => target !== undefined && onSeek(target + 1)}
-                disabled={target === undefined}
-                title={target !== undefined ? 'Jump to this decision' : 'Never examined'}
+                aria-disabled={target === undefined}
+                onPointerEnter={() => onHover({ type: 'edge', id: e.id })}
+                onPointerLeave={() => onHover(null)}
+                onFocus={() => onHover({ type: 'edge', id: e.id })}
+                onBlur={() => onHover(null)}
+                title={target !== undefined ? 'Jump to the step where this edge was decided' : 'Not examined'}
+                aria-label={`${name}, weight ${e.weight}, ${EDGE_STATUS[s].label}`}
               >
-                <span className={styles.edgeName}>
-                  {label.get(e.from)}–{label.get(e.to)}
-                </span>
+                <span className={styles.edgeName}>{name}</span>
                 <span className={styles.edgeWeight}>{e.weight}</span>
-                <span className={styles.edgeStatus}>{STATUS_TEXT[s]}</span>
+                <span className={styles.edgeStatus}>
+                  <i aria-hidden="true">{EDGE_STATUS[s].icon}</i>
+                  {EDGE_STATUS[s].short}
+                </span>
               </button>
             </li>
           );

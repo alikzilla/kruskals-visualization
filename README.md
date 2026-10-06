@@ -26,6 +26,13 @@ An interactive, step-by-step visualization of **Kruskal's minimum spanning tree 
 | `Home` / `End` | First / last step |
 | `N` | New random graph |
 
+## Design & accessibility
+
+- **Edge states** use fixed status colours (good / warning / critical), but never colour alone: each state also has its own stroke width and dash pattern, and is labelled with an icon and text in the edge table, tooltip and step banner.
+- **Union-Find sets** use a 3-slot categorical palette (blue, orange, aqua) checked for colour-vision deficiency across all pairs in both themes. A set keeps its colour until a larger set absorbs it. Vertices still in their own set are hollow. The tree edges, labelled set chips and hover highlighting carry set identity too.
+- **Linked hover and focus**: hover or tab to a vertex, set chip, edge or table row to highlight it everywhere and see a tooltip. The edge table is the text view of everything on the canvas.
+- Text always uses ink colours (status colours only mark icons and fills), neutral marks reach at least 3:1 against the canvas, marks scale up on small screens, and reduced-motion and forced-colours modes are respected.
+
 ## Development
 
 ```bash
@@ -34,8 +41,14 @@ npm run dev      # start dev server
 npm test         # algorithm unit tests (Vitest)
 npm run lint
 npm run build    # production build in dist/
-npm run deploy   # publish dist/ to GitHub Pages
+npm run deploy   # manual alternative: push dist/ to a gh-pages branch
 ```
+
+### Deployment
+
+Every push to `main` is linted, tested, built and published to GitHub Pages by
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). Pull requests run the
+same checks without publishing. One-time setup: **Settings → Pages → Source: GitHub Actions**.
 
 ## Project structure
 
