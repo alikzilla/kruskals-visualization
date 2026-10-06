@@ -1,0 +1,44 @@
+.about {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.about article {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+  line-height: 1.55;
+  font-size: 14px;
+}
+
+.about h2 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.about p + p,
+.about ol + p,
+.about ul + p {
+  margin-top: 8px;
+}
+
+.about ol,
+.about ul {
+  padding-left: 20px;
+}
+
+.about li + li {
+  margin-top: 4px;
+}
+
+.about code,
+.about kbd {
+  font: 12px var(--font-mono);
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}

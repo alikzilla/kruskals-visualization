@@ -1,0 +1,176 @@
+.wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 800 / 520;
+  border-radius: var(--radius);
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.mode_addNode .svg { cursor: crosshair; }
+.mode_addEdge .node { cursor: alias; }
+.mode_delete .node,
+.mode_delete .edge,
+.mode_delete .weight { cursor: not-allowed; }
+
+.gridLine {
+  fill: none;
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+/* ---------- edges ---------- */
+.edge .hit {
+  stroke: transparent;
+  stroke-width: 16;
+}
+
+.edge .line {
+  stroke: var(--edge);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke 0.3s, stroke-width 0.3s, opacity 0.3s;
+}
+
+.edge.current .line {
+  stroke: var(--current);
+  stroke-width: 6;
+  animation: pulse 0.9s ease-in-out infinite;
+}
+
+.edge.accepted .line {
+  stroke: var(--accepted);
+  stroke-width: 6;
+}
+
+.edge.rejected .line {
+  stroke: var(--rejected);
+  stroke-dasharray: 6 7;
+  opacity: 0.45;
+}
+
+.edge.skipped .line {
+  opacity: 0.2;
+  stroke-dasharray: 2 6;
+}
+
+.ghostEdge {
+  stroke: var(--current);
+  stroke-width: 3;
+  stroke-dasharray: 6 6;
+  pointer-events: none;
+}
+
+@keyframes pulse {
+  50% { stroke-width: 9; }
+}
+
+/* ---------- weight badges ---------- */
+.weight {
+  cursor: text;
+}
+
+.weight rect {
+  fill: var(--surface);
+  stroke: var(--edge);
+  stroke-width: 1.5;
+  transition: fill 0.3s, stroke 0.3s;
+}
+
+.weight text {
+  font: 600 12px var(--font-mono);
+  text-anchor: middle;
+  fill: var(--text);
+  pointer-events: none;
+}
+
+.weight.current rect { fill: var(--current); stroke: var(--current); }
+.weight.accepted rect { fill: var(--accepted); stroke: var(--accepted); }
+.weight.current text,
+.weight.accepted text { fill: #fff; }
+.weight.rejected rect { stroke: var(--rejected); }
+.weight.rejected text { fill: var(--rejected); text-decoration: line-through; }
+.weight.rejected,
+.weight.skipped { opacity: 0.55; }
+
+/* ---------- nodes ---------- */
+.node {
+  cursor: grab;
+}
+
+.node:active { cursor: grabbing; }
+
+.node circle:not(.halo) {
+  fill: var(--node);
+  stroke: var(--node);
+  stroke-width: 2;
+  transition: fill 0.4s, stroke 0.4s;
+}
+
+.node .halo {
+  fill: none;
+  stroke: var(--current);
+  stroke-width: 3;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.nodeActive .halo { opacity: 1; }
+
+.nodeSource .halo {
+  opacity: 1;
+  stroke-dasharray: 5 4;
+}
+
+.node:hover .halo { opacity: 0.5; }
+.nodeActive:hover .halo,
+.nodeSource:hover .halo { opacity: 1; }
+
+.node text {
+  font: 700 14px var(--font);
+  text-anchor: middle;
+  fill: #fff;
+  pointer-events: none;
+}
+
+/* ---------- overlays ---------- */
+.weightEditor {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.weightEditor input {
+  width: 64px;
+  padding: 4px 6px;
+  font: 600 14px var(--font-mono);
+  text-align: center;
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edge.current .line { animation: none; }
+}
