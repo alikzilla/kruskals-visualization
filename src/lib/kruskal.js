@@ -31,6 +31,9 @@ export function kruskal(graph) {
   return result;
 }
 
+/** Number of colour slots for union-find sets (validated all-pairs palette). */
+export const SET_SLOTS = 3;
+
 /**
  * Run Kruskal's algorithm and record a snapshot after every meaningful
  * action, so the UI can scrub back and forth through the execution.
@@ -41,6 +44,7 @@ export function kruskal(graph) {
  *   current  – id of the edge being examined (or null)
  *   status   – { [edgeId]: 'pending' | 'current' | 'accepted' | 'rejected' | 'skipped' }
  *   roots    – { [nodeId]: representative } (null before MAKE-SET)
+ *   setSlot  – { [representative]: colour slot | null } for sets with 2+ vertices
  *   weight   – total weight of accepted edges so far
  *   accepted – number of accepted edges so far
  *   message  – human-readable explanation
@@ -55,11 +59,16 @@ export function kruskalSteps(graph) {
   const steps = [];
   const status = Object.fromEntries(graph.edges.map((e) => [e.id, 'pending']));
   let roots = null;
+  // Colour follows the set, never its representative id: a set keeps its slot
+  // until it is absorbed by a larger set. Sets that find no free slot stay
+  // neutral rather than reusing a hue already on screen.
+  let setSlot = {};
+  const size = new Map(graph.nodes.map((n) => [n.id, 1]));
   let weight = 0;
   let accepted = 0;
 
   const push = (kind, line, message, current = null) =>
-    steps.push({ kind, line, message, current, status: { ...status }, roots, weight, accepted });
+    steps.push({ kind, line, message, current, status: { ...status }, roots, setSlot, weight, accepted });
 
   push(
     'start',
@@ -101,6 +110,25 @@ export function kruskalSteps(graph) {
     if (ru !== rv) {
       uf.union(e.from, e.to);
       roots = uf.roots();
+      const root = uf.find(e.from);
+      const [big, small] = size.get(ru) >= size.get(rv) ? [ru, rv] : [rv, ru];
+      const inherited = setSlot[big] ?? setSlot[small] ?? null;
+      const next = { ...setSlot };
+      delete next[ru];
+      delete next[rv];
+      const used = new Set(Object.values(next));
+      let slot = inherited;
+      if (slot === null) {
+        for (let k = 0; k < SET_SLOTS; k++) {
+          if (!used.has(k)) {
+            slot = k;
+            break;
+          }
+        }
+      }
+      next[root] = slot;
+      setSlot = next;
+      size.set(root, size.get(ru) + size.get(rv));
       status[e.id] = 'accepted';
       weight += e.weight;
       accepted++;

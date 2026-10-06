@@ -22,27 +22,37 @@
 
 .badge {
   flex: none;
-  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px 2px 7px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #fff;
-  background: var(--muted);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
   margin-top: 1px;
 }
 
-.consider { border-color: var(--current); }
-.consider .badge { background: var(--current); }
-.accept { border-color: var(--accepted); }
-.accept .badge { background: var(--accepted); }
-.reject { border-color: var(--rejected); }
-.reject .badge { background: var(--rejected); }
+.badge i {
+  font-style: normal;
+}
+
+/* Status banners: tinted surface + coloured rule; text stays ink. */
+.consider { border-color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, var(--surface-2)); }
+.consider .badge { background: var(--warning); border-color: var(--warning); color: var(--on-status); }
+.accept { border-color: var(--good); background: color-mix(in srgb, var(--good) 10%, var(--surface-2)); }
+.accept .badge { background: var(--good); border-color: var(--good); color: var(--on-status); }
+.reject { border-color: var(--critical); background: color-mix(in srgb, var(--critical) 9%, var(--surface-2)); }
+.reject .badge { border-color: var(--critical); }
+.reject .badge i { color: var(--critical); }
 .done { border-color: var(--primary); }
-.done .badge { background: var(--primary); }
+.done .badge { color: var(--primary); border-color: var(--primary); }
 .sort .badge,
-.makeset .badge { background: var(--primary); }
+.makeset .badge { color: var(--primary); }
 
 .controls {
   display: flex;
@@ -110,10 +120,11 @@
 .legend {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px 16px;
   list-style: none;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--text-secondary);
 }
 
 .legend li {
@@ -122,17 +133,19 @@
   gap: 6px;
 }
 
-.legend i {
-  display: inline-block;
-  width: 22px;
-  height: 0;
-  border-top: 4px solid;
-  border-radius: 2px;
+.legend .sep {
+  width: 1px;
+  height: 14px;
+  background: var(--border);
 }
 
-.lgPending { border-color: var(--edge) !important; }
-.lgCurrent { border-color: var(--current) !important; }
-.lgAccepted { border-color: var(--accepted) !important; }
-.lgRejected { border-top-style: dashed !important; border-color: var(--rejected) !important; }
-.lgSkipped { border-top-style: dotted !important; border-color: var(--edge) !important; opacity: 0.5; }
-.lgNote { font-style: italic; }
+.legend line {
+  stroke-linecap: round;
+}
+
+.kPending { stroke: var(--edge); stroke-width: 2; }
+.kCurrent { stroke: var(--warning); stroke-width: 5; }
+.kAccepted { stroke: var(--good); stroke-width: 5; }
+.kRejected { stroke: var(--critical); stroke-width: 2; stroke-dasharray: 5 4; opacity: 0.7; }
+.kSkipped { stroke: var(--edge); stroke-width: 2; stroke-dasharray: 1 5; }
+.kSingle { fill: var(--surface); stroke: var(--node-stroke); stroke-width: 2; }

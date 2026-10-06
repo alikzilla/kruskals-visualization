@@ -23,6 +23,8 @@ function Visualizer() {
   const [mode, setMode] = useState('move');
   const [speed, setSpeed] = useState(1);
   const [shareState, setShareState] = useState(null);
+  // Linked highlighting between canvas, set chips and edge table.
+  const [hover, setHover] = useState(null);
 
   // Dragging vertices changes positions only, so keep the run alive unless
   // the topology or weights change.
@@ -140,6 +142,8 @@ function Visualizer() {
           graph={graph}
           step={step}
           mode={mode}
+          hover={hover}
+          onHover={setHover}
           onMoveNode={moveNode}
           onAddNode={addNode}
           onAddEdge={addEdge}
@@ -158,6 +162,8 @@ function Visualizer() {
         sorted={run.sorted}
         needed={run.needed}
         components={run.components}
+        hover={hover}
+        onHover={setHover}
         onSeek={(i) => {
           player.setPlaying(false);
           player.seek(i);

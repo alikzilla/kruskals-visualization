@@ -2,6 +2,16 @@ import Icon from '../Icon';
 import { SPEEDS } from '../../lib/theme';
 import styles from './playback.module.css';
 
+const KIND_ICON = {
+  start: '▶',
+  sort: '↕',
+  makeset: '○',
+  consider: '●',
+  accept: '✓',
+  reject: '✕',
+  done: '★',
+};
+
 const KIND_LABEL = {
   start: 'Ready',
   sort: 'Sort',
@@ -18,7 +28,10 @@ function Playback({ player, step, speed, onSpeed }) {
   return (
     <div className={styles.playback}>
       <div className={`${styles.message} ${styles[step.kind]}`} aria-live="polite">
-        <span className={styles.badge}>{KIND_LABEL[step.kind]}</span>
+        <span className={styles.badge}>
+          <i aria-hidden="true">{KIND_ICON[step.kind]}</i>
+          {KIND_LABEL[step.kind]}
+        </span>
         <p>{step.message}</p>
       </div>
 
@@ -80,13 +93,22 @@ function Playback({ player, step, speed, onSpeed }) {
         </div>
       </div>
 
-      <ul className={styles.legend}>
-        <li><i className={styles.lgPending} /> Unexamined</li>
-        <li><i className={styles.lgCurrent} /> Examining</li>
-        <li><i className={styles.lgAccepted} /> In the tree</li>
-        <li><i className={styles.lgRejected} /> Rejected (cycle)</li>
-        <li><i className={styles.lgSkipped} /> Not needed</li>
-        <li className={styles.lgNote}>Same-coloured vertices are in the same union-find set</li>
+      <ul className={styles.legend} aria-label="Legend">
+        <li><svg width="26" height="10" aria-hidden="true"><line x1="2" y1="5" x2="24" y2="5" className={styles.kPending} /></svg> Unexamined</li>
+        <li><svg width="26" height="10" aria-hidden="true"><line x1="2" y1="5" x2="24" y2="5" className={styles.kCurrent} /></svg> Examining</li>
+        <li><svg width="26" height="10" aria-hidden="true"><line x1="2" y1="5" x2="24" y2="5" className={styles.kAccepted} /></svg> In the tree</li>
+        <li><svg width="26" height="10" aria-hidden="true"><line x1="2" y1="5" x2="24" y2="5" className={styles.kRejected} /></svg> Rejected (cycle)</li>
+        <li><svg width="26" height="10" aria-hidden="true"><line x1="2" y1="5" x2="24" y2="5" className={styles.kSkipped} /></svg> Not needed</li>
+        <li className={styles.sep} aria-hidden="true" />
+        <li><svg width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="6" className={styles.kSingle} /></svg> Vertex in its own set</li>
+        <li>
+          <svg width="40" height="16" aria-hidden="true">
+            <circle cx="8" cy="8" r="6" style={{ fill: 'var(--set-1)' }} />
+            <circle cx="20" cy="8" r="6" style={{ fill: 'var(--set-2)' }} />
+            <circle cx="32" cy="8" r="6" style={{ fill: 'var(--set-3)' }} />
+          </svg>
+          Same colour = same set (hover to highlight)
+        </li>
       </ul>
     </div>
   );
